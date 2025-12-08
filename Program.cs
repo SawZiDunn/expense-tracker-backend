@@ -36,11 +36,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        var allowedOrigins = new List<string> { "http://localhost:5173" };
+        var allowedOrigins = new List<string> 
+        { 
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "https://expense-tracker-frontend-henna-seven.vercel.app"
+        };
         
-        // Add production frontend URL if specified
+        // Add FRONTEND_URL if specified
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-        if (!string.IsNullOrEmpty(frontendUrl))
+        if (!string.IsNullOrEmpty(frontendUrl) && !allowedOrigins.Contains(frontendUrl))
         {
             allowedOrigins.Add(frontendUrl);
         }
