@@ -40,13 +40,15 @@ builder.Services.AddCors(options =>
         { 
             "http://localhost:5173",
             "http://localhost:5174",
-            "https://expense-tracker-frontend-henna-seven.vercel.app"
+            "https://expense-tracker-sawzidunn.vercel.app"
         };
         
         // Add FRONTEND_URL if specified
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+        System.Console.WriteLine($"Adding FRONTEND_URL to CORS allowed origins: {frontendUrl}");
         if (!string.IsNullOrEmpty(frontendUrl) && !allowedOrigins.Contains(frontendUrl))
         {
+            
             allowedOrigins.Add(frontendUrl);
         }
         
