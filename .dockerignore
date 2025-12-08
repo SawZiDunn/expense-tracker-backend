@@ -1,0 +1,22 @@
+# Ignore build artifacts and local development files
+bin/
+obj/
+out/
+.env
+.vscode/
+.vs/
+*.user
+*.suo
+*.cache
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore documentation
+README.md
+DEPLOYMENT.md
+
+# Ignore test files
+**/*Tests/
+**/*.Test/

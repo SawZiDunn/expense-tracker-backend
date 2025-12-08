@@ -1,0 +1,14 @@
+services:
+    - type: web
+      name: expense-tracker-backend
+      runtime: docker
+      plan: free
+      env: docker
+      envVars:
+          - key: MONGODB_CONNECTION_STRING
+            sync: false
+          - key: FRONTEND_URL
+            value: https://your-frontend-url.onrender.com
+          - key: ASPNETCORE_ENVIRONMENT
+            value: Production
+      healthCheckPath: /expenses
