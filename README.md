@@ -1,44 +1,87 @@
 # Expense Tracker Backend API
 
-ASP.NET Core Minimal API with MongoDB Atlas for expense tracking.
+A RESTful API built with ASP.NET Core 8.0 and MongoDB Atlas for managing personal expenses.
+Although I've developed some backend services using FastAPI, Django, Express, etc, this is my first backend project using C# and .NET, featuring a modern minimal API approach with Docker containerization for seamless deployment.
 
 ## Features
 
--   ✅ Full CRUD operations for expenses
--   ✅ Filter expenses by date range
--   ✅ Category-based expense summaries
--   ✅ MongoDB Atlas integration
--   ✅ CORS enabled for React frontend
--   ✅ camelCase JSON serialization
+-   Full CRUD operations for expense management
+-   Filter expenses by date range
+-   Category-based expense summaries with aggregation
+-   MongoDB Atlas cloud database integration
+-   Docker containerization for easy deployment
+-   CORS configured for cross-origin requests
+
+## Technologies
+
+-   **Runtime**: .NET 8.0
+-   **Framework**: ASP.NET Core Minimal API
+-   **Database**: MongoDB Atlas (Cloud NoSQL)
+-   **ODM**: MongoDB.Driver 3.5.2
+-   **Configuration**: DotNetEnv for environment variables
+-   **Containerization**: Docker (multi-stage build)
+-   **Deployment**: Render (Platform-as-a-Service)
 
 ## Prerequisites
 
 -   .NET 8.0 SDK
--   MongoDB Atlas account
+-   MongoDB Atlas account (free tier available)
+-   Docker (optional, for containerized deployment)
 
-## Setup
+## Quick Start
 
-1. **Update MongoDB Connection String**
+### Local Development
 
-    Edit `appsettings.json` and replace the connection string with your MongoDB Atlas credentials:
+1. **Clone the repository**
 
-    ```json
-    "ConnectionString": "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority"
+    ```bash
+    git clone https://github.com/SawZiDunn/expense-tracker-backend.git
+    cd expense-tracker-backend
     ```
 
-2. **Restore Dependencies**
+2. **Set up environment variables**
+
+    Create a `.env` file in the project root:
+
+    ```env
+    MONGODB_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/
+    FRONTEND_URL=http://localhost:5173
+    ```
+
+3. **Restore dependencies**
 
     ```bash
     dotnet restore
     ```
 
-3. **Run the Application**
+4. **Run the application**
 
     ```bash
     dotnet run
     ```
 
-    The API will be available at `http://localhost:5000` (or `https://localhost:5001`)
+    The API will be available at `http://localhost:5000`
+
+### Docker Deployment
+
+1. **Build the Docker image**
+
+    ```bash
+    docker build -t expense-tracker-backend .
+    ```
+
+2. **Run the container**
+
+    ```bash
+    docker run -p 8080:8080 \
+      -e MONGODB_CONNECTION_STRING="your-connection-string" \
+      -e FRONTEND_URL="https://your-frontend.vercel.app" \
+      expense-tracker-backend
+    ```
+
+3. **Access the API**
+
+    API will be available at `http://localhost:8080`
 
 ## API Endpoints
 
@@ -96,27 +139,39 @@ GET /expenses/filter?start=2024-01-01&end=2024-12-31
 }
 ```
 
-## Project Structure
+## Configuration
 
-```
-backend/
-├── Models/
-│   └── Expense.cs           # Expense model
-├── Services/
-│   └── ExpenseService.cs    # MongoDB service layer
-├── Settings/
-│   └── MongoDbSettings.cs   # MongoDB configuration
-├── Program.cs               # API endpoints & configuration
-├── appsettings.json         # App configuration
-└── ExpenseTracker.csproj    # Project file
-```
+### Database Configuration
 
-## Technologies
+The app uses MongoDB Atlas with the following settings:
 
--   ASP.NET Core 8.0 Minimal API
--   MongoDB.Driver 2.28.0
--   MongoDB Atlas (Database)
+-   **Database Name**: `ExpenseTrackerDB`
+-   **Collection Name**: `expenses`
 
-## CORS Configuration
+Configuration is loaded from environment variables with fallback to `appsettings.json`.
 
-Currently configured to allow requests from `http://localhost:5173` (React dev server). Update the CORS policy in `Program.cs` if needed.
+## Docker
+
+This project uses a **multi-stage Dockerfile** for optimal image size and security:
+
+1. **Build Stage**: Uses `mcr.microsoft.com/dotnet/sdk:8.0` to compile the application
+2. **Runtime Stage**: Uses minimal `mcr.microsoft.com/dotnet/aspnet:8.0` to run the app
+
+**Benefits:**
+
+-   Smaller final image (~100MB vs ~500MB)
+-   Production-only dependencies
+-   Faster deployments
+-   Enhanced security
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## Author
+
+**Saw Zi Dunn**
+
+-   GitHub: [@SawZiDunn](https://github.com/SawZiDunn)
+
+---
