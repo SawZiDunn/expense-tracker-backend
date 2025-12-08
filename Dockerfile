@@ -4,11 +4,11 @@ WORKDIR /app
 
 # Copy csproj and restore dependencies
 COPY *.csproj ./
-RUN dotnet restore
+RUN dotnet restore ExpenseTracker.csproj
 
 # Copy everything else and build
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish ExpenseTracker.csproj -c Release -o out
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
