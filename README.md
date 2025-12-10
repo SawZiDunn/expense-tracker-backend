@@ -1,7 +1,9 @@
 # Expense Tracker Backend API
 
 A RESTful API built with ASP.NET Core 8.0 and MongoDB Atlas for managing personal expenses.
-Although I've developed some backend services using FastAPI, Django, Express, etc, this is my first backend project using C# and .NET, featuring a modern minimal API approach with Docker containerization for seamless deployment.
+Although I've developed some backend services using FastAPI, Django, Express, etc, this is my first backend project using **C#**and **.NET**, featuring a modern minimal API approach with Docker containerization for seamless deployment.
+
+Frontend for this project is available at: [Expense Tracker Frontend](https://github.com/SawZiDunn/expense-tracker-frontend)
 
 ## Features
 
@@ -164,7 +166,7 @@ This project uses a **multi-stage Dockerfile** for optimal image size and securi
 -   Faster deployments
 -   Enhanced security
 
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
