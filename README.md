@@ -5,6 +5,11 @@ Although I've developed some backend services using FastAPI, Django, Express, et
 
 Frontend for this project is available at: [Expense Tracker Frontend](https://github.com/SawZiDunn/expense-tracker-frontend)
 
+## Documentation
+
+-   [DEPLOYMENT.md](DEPLOYMENT.md) - deploy the API to Render with Docker
+-   [DOCKER_SETUP.md](DOCKER_SETUP.md) - build and run the container locally
+
 ## Features
 
 -   Full CRUD operations for expense management
@@ -66,24 +71,19 @@ Frontend for this project is available at: [Expense Tracker Frontend](https://gi
 
 ### Docker Deployment
 
-1. **Build the Docker image**
+The API can also run in a container:
 
-    ```bash
-    docker build -t expense-tracker-backend .
-    ```
+```bash
+docker build -t expense-tracker-backend .
+docker run -p 8080:8080 \
+  -e MONGODB_CONNECTION_STRING="your-connection-string" \
+  -e FRONTEND_URL="http://localhost:5173" \
+  expense-tracker-backend
+```
 
-2. **Run the container**
-
-    ```bash
-    docker run -p 8080:8080 \
-      -e MONGODB_CONNECTION_STRING="your-connection-string" \
-      -e FRONTEND_URL="https://your-frontend.vercel.app" \
-      expense-tracker-backend
-    ```
-
-3. **Access the API**
-
-    API will be available at `http://localhost:8080`
+The API will be available at `http://localhost:8080`. See
+[DOCKER_SETUP.md](DOCKER_SETUP.md) for details, including running the frontend
+and backend together with Docker Compose.
 
 ## API Endpoints
 
@@ -154,17 +154,12 @@ Configuration is loaded from environment variables with fallback to `appsettings
 
 ## Docker
 
-This project uses a **multi-stage Dockerfile** for optimal image size and security:
+This project uses a **multi-stage Dockerfile** for optimal image size and
+security: `mcr.microsoft.com/dotnet/sdk:8.0` compiles the application, then the
+minimal `mcr.microsoft.com/dotnet/aspnet:8.0` image runs it (~100MB vs ~500MB).
 
-1. **Build Stage**: Uses `mcr.microsoft.com/dotnet/sdk:8.0` to compile the application
-2. **Runtime Stage**: Uses minimal `mcr.microsoft.com/dotnet/aspnet:8.0` to run the app
-
-**Benefits:**
-
--   Smaller final image (~100MB vs ~500MB)
--   Production-only dependencies
--   Faster deployments
--   Enhanced security
+See [DOCKER_SETUP.md](DOCKER_SETUP.md) for build/run instructions and the
+Docker Compose setup.
 
 ## License
 

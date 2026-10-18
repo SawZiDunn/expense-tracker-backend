@@ -16,6 +16,7 @@ out/
 # Ignore documentation
 README.md
 DEPLOYMENT.md
+DOCKER_SETUP.md
 
 # Ignore test files
 **/*Tests/

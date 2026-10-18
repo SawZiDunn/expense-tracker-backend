@@ -1,6 +1,7 @@
 using ExpenseTracker.Models;
 using ExpenseTracker.Services;
 using ExpenseTracker.Settings;
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +66,28 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+// Global error handling.
+// Without this, an unhandled exception produces a bare 500 with no body and no CORS
+// headers, which the browser reports as a misleading "CORS policy" error. Returning a
+// JSON body keeps the real failure visible.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<IExceptionHandlerFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        logger.LogError(feature?.Error,
+            "Unhandled exception while handling {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error" });
+    });
+});
 
 // Enable CORS
 app.UseCors("AllowReactApp");
