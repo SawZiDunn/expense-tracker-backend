@@ -48,16 +48,19 @@ The API is available at http://localhost:8080
 
 ## Run with Docker Compose (recommended)
 
-From the repository root, create a `.env` file from the example and start everything:
+From the repository root:
 
 ```bash
-cp .env.example .env      # then fill in MONGODB_CONNECTION_STRING
 docker compose up --build
 ```
 
-Compose reads `.env` automatically. It starts the backend on http://localhost:8080
-and the frontend on http://localhost:3000, and sets `FRONTEND_URL=http://localhost:3000`
-so CORS works.
+No `.env` file is needed. Compose also starts a `mongo` container and points the
+backend at it (`mongodb://mongo:27017`), so no Atlas account is required locally.
+It starts the backend on http://localhost:8080, the frontend on http://localhost:3000,
+and sets `FRONTEND_URL=http://localhost:3000` so CORS works.
+
+To use Atlas instead, set `MONGODB_CONNECTION_STRING` in the root `.env` and run
+`docker compose up -d`.
 
 ## Useful commands
 
