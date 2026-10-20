@@ -11,13 +11,15 @@ public class Expense
     public string Id { get; set; } = string.Empty;
 
     [BsonElement("amount")]
-    public double Amount { get; set; }
+    public decimal Amount { get; set; }
 
     [BsonElement("category")]
     public string Category { get; set; } = string.Empty;
 
+    // Stored and read back as UTC so date-range filters are not skewed by server time zone.
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     [BsonElement("date")]
-    public DateTime Date { get; set; } = DateTime.Now;
+    public DateTime Date { get; set; } = DateTime.UtcNow;
 
     [BsonElement("note")]
     public string Note { get; set; } = string.Empty;

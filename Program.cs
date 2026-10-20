@@ -1,7 +1,8 @@
-using ExpenseTracker.Models;
+using ExpenseTracker.Endpoints;
 using ExpenseTracker.Services;
 using ExpenseTracker.Settings;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,9 +23,22 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 builder.Services.Configure<MongoDbSettings>(options =>
 {
     var config = builder.Configuration.GetSection("MongoDbSettings");
-    options.ConnectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") 
-                             ?? config["ConnectionString"] 
-                             ?? throw new InvalidOperationException("MongoDB connection string not configured");
+
+    // Fail loudly when no connection string is configured.
+    var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = config["ConnectionString"];
+    }
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "MongoDB connection string is not configured. Set MONGODB_CONNECTION_STRING " +
+            "or MongoDbSettings:ConnectionString in appsettings.json.");
+    }
+
+    options.ConnectionString = connectionString;
     options.DatabaseName = config["DatabaseName"] ?? "ExpenseTrackerDB";
     options.ExpensesCollection = config["ExpensesCollection"] ?? "expenses";
 });
@@ -32,30 +46,33 @@ builder.Services.Configure<MongoDbSettings>(options =>
 // Register ExpenseService
 builder.Services.AddSingleton<ExpenseService>();
 
-// CORS
+// CORS - origins come from configuration so a new deployment never needs a code change.
+// CORS_ORIGINS is a comma-separated list; FRONTEND_URL is still honoured so the existing
+// Compose file and render.yaml keep working without edits.
+var allowedOrigins = (Environment.GetEnvironmentVariable("CORS_ORIGINS")
+                   ?? Environment.GetEnvironmentVariable("FRONTEND_URL")
+                   ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(origin => origin.TrimEnd('/')) // a trailing slash silently fails origin matching
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+// Convenience for local development only - never active outside Development.
+if (allowedOrigins.Length == 0 && builder.Environment.IsDevelopment())
+{
+    allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        var allowedOrigins = new List<string> 
-        { 
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "https://expense-tracker-sawzidunn.vercel.app"
-        };
-        
-        // Add FRONTEND_URL if specified
-        var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-        System.Console.WriteLine($"Adding FRONTEND_URL to CORS allowed origins: {frontendUrl}");
-        if (!string.IsNullOrEmpty(frontendUrl) && !allowedOrigins.Contains(frontendUrl))
+        if (allowedOrigins.Length > 0)
         {
-            
-            allowedOrigins.Add(frontendUrl);
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
         }
-        
-        policy.WithOrigins(allowedOrigins.ToArray())
-              .AllowAnyHeader()
-              .AllowAnyMethod();
     });
 });
 
@@ -66,6 +83,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+app.Logger.LogInformation(
+    "CORS allowed origins: {Origins}",
+    allowedOrigins.Length == 0 ? "(none)" : string.Join(", ", allowedOrigins));
+
+// Resolve the options once at startup so a missing connection string fails the boot
+// instead of surfacing on the first request.
+_ = app.Services.GetRequiredService<IOptions<MongoDbSettings>>().Value;
 
 // Global error handling.
 // Without this, an unhandled exception produces a bare 500 with no body and no CORS
@@ -93,85 +118,6 @@ app.UseExceptionHandler(errorApp =>
 app.UseCors("AllowReactApp");
 
 // Endpoints
-
-// GET /expenses - Get all expenses
-app.MapGet("/expenses", async (ExpenseService service) =>
-{
-    var expenses = await service.GetAllAsync();
-    return Results.Ok(expenses);
-})
-.WithName("GetAllExpenses")
-.WithOpenApi();
-
-// GET /expenses/{id} - Get expense by ID
-app.MapGet("/expenses/{id}", async (string id, ExpenseService service) =>
-{
-    var expense = await service.GetByIdAsync(id);
-    return expense is not null ? Results.Ok(expense) : Results.NotFound();
-})
-.WithName("GetExpenseById")
-.WithOpenApi();
-
-// POST /expenses - Create new expense
-app.MapPost("/expenses", async (Expense expense, ExpenseService service) =>
-{
-    var created = await service.CreateAsync(expense);
-    return Results.Created($"/expenses/{created.Id}", created);
-})
-.WithName("CreateExpense")
-.WithOpenApi();
-
-// PUT /expenses/{id} - Update expense
-app.MapPut("/expenses/{id}", async (string id, Expense expense, ExpenseService service) =>
-{
-    var exists = await service.GetByIdAsync(id);
-    if (exists is null)
-        return Results.NotFound();
-
-    var updated = await service.UpdateAsync(id, expense);
-    return updated ? Results.NoContent() : Results.BadRequest();
-})
-.WithName("UpdateExpense")
-.WithOpenApi();
-
-// DELETE /expenses/{id} - Delete expense
-app.MapDelete("/expenses/{id}", async (string id, ExpenseService service) =>
-{
-    var exists = await service.GetByIdAsync(id);
-    if (exists is null)
-        return Results.NotFound();
-
-    var deleted = await service.DeleteAsync(id);
-    return deleted ? Results.NoContent() : Results.BadRequest();
-})
-.WithName("DeleteExpense")
-.WithOpenApi();
-
-// GET /expenses/filter?start=2024-01-01&end=2024-01-31 - Filter by date range
-app.MapGet("/expenses/filter", async (DateTime start, DateTime end, ExpenseService service) =>
-{
-    var expenses = await service.FilterByDateRangeAsync(start, end);
-    return Results.Ok(expenses);
-})
-.WithName("FilterExpensesByDateRange")
-.WithOpenApi();
-
-// GET /expenses/summary - Get category summary
-app.MapGet("/expenses/summary", async (ExpenseService service) =>
-{
-    var summary = await service.GetCategorySummaryAsync();
-    return Results.Ok(summary);
-})
-.WithName("GetCategorySummary")
-.WithOpenApi();
-
-// GET /expenses/summary/filter?start=2024-01-01&end=2024-01-31 - Get category summary by date range
-app.MapGet("/expenses/summary/filter", async (DateTime start, DateTime end, ExpenseService service) =>
-{
-    var summary = await service.GetCategorySummaryByDateRangeAsync(start, end);
-    return Results.Ok(summary);
-})
-.WithName("GetCategorySummaryByDateRange")
-.WithOpenApi();
+app.MapExpenseEndpoints();
 
 app.Run();

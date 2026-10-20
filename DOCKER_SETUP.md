@@ -48,11 +48,15 @@ The API is available at http://localhost:8080
 
 ## Run with Docker Compose (recommended)
 
-From the repository root:
+From the deployment repository root:
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 ```
+
+`docker-compose.yml` on its own pulls the published images and needs no source code.
+`docker-compose.build.yml` adds the `build:` sections so Compose builds the images from
+the local source instead - hence both `-f` flags.
 
 No `.env` file is needed. Compose also starts a `mongo` container and points the
 backend at it (`mongodb://mongo:27017`), so no Atlas account is required locally.
@@ -67,7 +71,7 @@ To use Atlas instead, set `MONGODB_CONNECTION_STRING` in the root `.env` and run
 ```bash
 docker compose logs -f backend    # follow backend logs
 docker compose down               # stop and remove containers
-docker compose build --no-cache   # rebuild from scratch
+docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cache   # rebuild from scratch
 ```
 
 ## Troubleshooting

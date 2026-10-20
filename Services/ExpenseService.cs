@@ -32,7 +32,10 @@ public class ExpenseService
     {
         expense.Id = id;
         var result = await _expensesCollection.ReplaceOneAsync(x => x.Id == id, expense);
-        return result.ModifiedCount > 0;
+
+        // MatchedCount, not ModifiedCount: replacing a document with identical values
+        // leaves ModifiedCount at 0, which would report a valid update as a failure.
+        return result.MatchedCount > 0;
     }
 
     public async Task<bool> DeleteAsync(string id)
@@ -50,7 +53,7 @@ public class ExpenseService
         return await _expensesCollection.Find(filter).ToListAsync();
     }
 
-    public async Task<Dictionary<string, double>> GetCategorySummaryAsync()
+    public async Task<Dictionary<string, decimal>> GetCategorySummaryAsync()
     {
         var expenses = await GetAllAsync();
         return expenses
@@ -58,7 +61,7 @@ public class ExpenseService
             .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
     }
 
-    public async Task<Dictionary<string, double>> GetCategorySummaryByDateRangeAsync(DateTime start, DateTime end)
+    public async Task<Dictionary<string, decimal>> GetCategorySummaryByDateRangeAsync(DateTime start, DateTime end)
     {
         var expenses = await FilterByDateRangeAsync(start, end);
         return expenses
