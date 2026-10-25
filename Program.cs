@@ -4,13 +4,14 @@ using ExpenseTracker.Settings;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Load environment variables from .env file (for local development)
+// Load .env first: the host reads ASPNETCORE_ENVIRONMENT and other settings as soon as
+// it is created, so anything set after CreateBuilder would arrive too late.
 if (File.Exists(".env"))
 {
     DotNetEnv.Env.Load();
 }
+
+var builder = WebApplication.CreateBuilder(args);
 
 // Configure Kestrel to use PORT environment variable (for Render deployment)
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
