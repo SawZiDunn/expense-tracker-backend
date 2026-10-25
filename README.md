@@ -1,93 +1,67 @@
-# Expense Tracker Backend API
+# Expense Tracker - Backend
 
-A RESTful API built with ASP.NET Core 8.0 and MongoDB Atlas for managing personal expenses.
-Although I've developed some backend services using FastAPI, Django, Express, etc, this is my first backend project using **C#**and **.NET**, featuring a modern minimal API approach with Docker containerization for seamless deployment.
+RESTful API for the Expense Tracker app, built with ASP.NET Core 8 minimal APIs and
+MongoDB.
 
-Frontend for this project is available at: [Expense Tracker Frontend](https://github.com/SawZiDunn/expense-tracker-frontend)
-
-## Documentation
-
--   [DEPLOYMENT.md](DEPLOYMENT.md) - deploy the API to Render with Docker
--   [DOCKER_SETUP.md](DOCKER_SETUP.md) - build and run the container locally
+The frontend lives at
+[expense-tracker-frontend](https://github.com/SawZiDunn/expense-tracker-frontend).
 
 ## Features
 
--   Full CRUD operations for expense management
--   Filter expenses by date range
--   Category-based expense summaries with aggregation
--   MongoDB Atlas cloud database integration
--   Docker containerization for easy deployment
--   CORS configured for cross-origin requests
+- Full CRUD for expenses
+- Filter expenses by date range
+- Category totals, overall and per date range
+- MongoDB storage - a local container or MongoDB Atlas
+- Docker image for deployment
 
-## Technologies
+## Tech stack
 
--   **Runtime**: .NET 8.0
--   **Framework**: ASP.NET Core Minimal API
--   **Database**: MongoDB Atlas (Cloud NoSQL)
--   **ODM**: MongoDB.Driver 3.5.2
--   **Configuration**: DotNetEnv for environment variables
--   **Containerization**: Docker (multi-stage build)
--   **Deployment**: Render (Platform-as-a-Service)
+- **Runtime** - .NET 8 / ASP.NET Core minimal APIs
+- **Database** - MongoDB via `MongoDB.Driver` 3.5.2
+- **Configuration** - `appsettings.json` plus environment variables, with DotNetEnv for a
+  local `.env` file
+- **Container** - multi-stage Dockerfile (SDK build image, ASP.NET runtime image)
+- **API metadata** - OpenAPI via `WithOpenApi()`
 
-## Prerequisites
+## Run locally
 
--   .NET 8.0 SDK
--   MongoDB Atlas account (free tier available)
--   Docker (optional, for containerized deployment)
-
-## Quick Start
-
-### Local Development
-
-1. **Clone the repository**
-
-    ```bash
-    git clone https://github.com/SawZiDunn/expense-tracker-backend.git
-    cd expense-tracker-backend
-    ```
-
-2. **Set up environment variables**
-
-    Create a `.env` file in the project root:
-
-    ```env
-    MONGODB_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/
-    FRONTEND_URL=http://localhost:5173
-    ```
-
-3. **Restore dependencies**
-
-    ```bash
-    dotnet restore
-    ```
-
-4. **Run the application**
-
-    ```bash
-    dotnet run
-    ```
-
-    The API will be available at `http://localhost:5000`
-
-### Docker Deployment
-
-The API can also run in a container:
+Requires the .NET 8 SDK and a MongoDB instance - either Atlas or a local container.
 
 ```bash
-docker build -t expense-tracker-backend .
-docker run -p 8080:8080 \
-  -e MONGODB_CONNECTION_STRING="your-connection-string" \
-  -e FRONTEND_URL="http://localhost:5173" \
-  expense-tracker-backend
+git clone https://github.com/SawZiDunn/expense-tracker-backend
+cd expense-tracker-backend
+
+cat > .env <<'EOF'
+MONGODB_CONNECTION_STRING=mongodb://localhost:27017
+FRONTEND_URL=http://localhost:5173
+EOF
+
+dotnet restore
+dotnet run
 ```
 
-The API will be available at `http://localhost:8080`. See
-[DOCKER_SETUP.md](DOCKER_SETUP.md) for details, including running the frontend
-and backend together with Docker Compose.
+The API is available at **http://localhost:5000**.
 
-## API Endpoints
+`FRONTEND_URL` is the browser origin allowed by CORS - the Vite dev server by default. For
+the database, put your Atlas URI in `MONGODB_CONNECTION_STRING`; nothing else changes.
 
-### Expenses
+## Configuration
+
+| Variable                    | Required | Purpose                                                                          |
+| --------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `MONGODB_CONNECTION_STRING` | yes      | MongoDB connection string. The app refuses to start without it.                   |
+| `FRONTEND_URL`              | no       | Origin allowed by CORS. Comma-separated values allow several.                     |
+| `CORS_ORIGINS`              | no       | Same as above, and takes precedence over `FRONTEND_URL`.                          |
+| `PORT`                      | no       | Port Kestrel listens on. `5000` from source; the Docker image sets `8080`.        |
+| `ASPNETCORE_ENVIRONMENT`    | no       | Defaults to `Production`. `Development` adds a `localhost:5173`/`5174` CORS fallback when no origins are set. |
+
+The database and collection names are not part of the connection string - they come from
+`appsettings.json`: database `ExpenseTrackerDB`, collection `expenses`.
+
+For local runs these values can live in `.env`. In containers and on a hosting platform they
+must be real environment variables; the `.env` file is not read when it isn't present.
+
+## API
 
 | Method | Endpoint                                           | Description                         |
 | ------ | -------------------------------------------------- | ----------------------------------- |
@@ -97,14 +71,17 @@ and backend together with Docker Compose.
 | PUT    | `/expenses/{id}`                                   | Update expense                      |
 | DELETE | `/expenses/{id}`                                   | Delete expense                      |
 | GET    | `/expenses/filter?start={date}&end={date}`         | Filter expenses by date range       |
-| GET    | `/expenses/summary`                                | Get category summary (all expenses) |
-| GET    | `/expenses/summary/filter?start={date}&end={date}` | Get category summary by date range  |
+| GET    | `/expenses/summary`                                | Category totals for all expenses    |
+| GET    | `/expenses/summary/filter?start={date}&end={date}` | Category totals for a date range    |
 
-### Request/Response Examples
+### Examples
 
-**Create Expense (POST /expenses)**
+**Create an expense**
 
-```json
+```http
+POST /expenses
+Content-Type: application/json
+
 {
     "amount": 50.0,
     "category": "Food",
@@ -112,8 +89,6 @@ and backend together with Docker Compose.
     "note": "Lunch at restaurant"
 }
 ```
-
-**Response**
 
 ```json
 {
@@ -125,13 +100,11 @@ and backend together with Docker Compose.
 }
 ```
 
-**Filter by Date Range**
+**Category totals**
 
+```http
+GET /expenses/summary
 ```
-GET /expenses/filter?start=2024-01-01&end=2024-12-31
-```
-
-**Category Summary Response**
 
 ```json
 {
@@ -141,34 +114,48 @@ GET /expenses/filter?start=2024-01-01&end=2024-12-31
 }
 ```
 
-## Configuration
+A malformed id returns `400`, and an unknown id returns `404`.
 
-### Database Configuration
+## Run with Docker
 
-The app uses MongoDB Atlas with the following settings:
+```bash
+docker build -t expense-tracker-backend .
 
--   **Database Name**: `ExpenseTrackerDB`
--   **Collection Name**: `expenses`
+docker run -p 8080:8080 \
+  -e MONGODB_CONNECTION_STRING="mongodb+srv://user:pass@cluster.mongodb.net/" \
+  -e FRONTEND_URL="http://localhost:3000" \
+  expense-tracker-backend
+```
 
-Configuration is loaded from environment variables with fallback to `appsettings.json`.
+The API is available at **http://localhost:8080**. The image sets `PORT=8080` to match its
+`EXPOSE`, so the published port works as written; if you override `PORT`, publish the same
+number.
 
-## Docker
+The multi-stage build compiles with the .NET SDK image and runs the result on the smaller
+ASP.NET runtime image, so the SDK never ships to production.
 
-This project uses a **multi-stage Dockerfile** for optimal image size and
-security: `mcr.microsoft.com/dotnet/sdk:8.0` compiles the application, then the
-minimal `mcr.microsoft.com/dotnet/aspnet:8.0` image runs it (~100MB vs ~500MB).
+## Run the full stack
 
-See [DOCKER_SETUP.md](DOCKER_SETUP.md) for build/run instructions and the
-Docker Compose setup.
+The frontend, this API and a MongoDB container are wired together in the deployment
+repository: <https://github.com/SawZiDunn/expense-tracker-deployment>
+
+```bash
+git clone https://github.com/SawZiDunn/expense-tracker-deployment
+cd expense-tracker-deployment
+docker compose up -d
+```
+
+That starts the API on http://localhost:8080 and the frontend on http://localhost:3000,
+with MongoDB data in a persistent volume. No `.env` and no Atlas account needed.
+
+## Deploy
+
+Render with MongoDB Atlas: see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## License
 
-This project is open source and available under the MIT License.
+MIT.
 
 ## Author
 
-**Saw Zi Dunn**
-
--   GitHub: [@SawZiDunn](https://github.com/SawZiDunn)
-
----
+**Saw Zi Dunn** - [@SawZiDunn](https://github.com/SawZiDunn)

@@ -1,28 +1,28 @@
-# Deployment Guide - Expense Tracker Backend
+# Deployment - Expense Tracker Backend
 
-Deploy the ASP.NET Core 8 + MongoDB backend to [Render](https://render.com) using Docker.
+Deploy the API to [Render](https://render.com) as a Docker service, with
+[MongoDB Atlas](https://www.mongodb.com/atlas) as the database.
 
-## Prerequisites
+The repository already contains what Render needs: a `Dockerfile` and a `render.yaml`
+blueprint.
 
-- MongoDB Atlas cluster
-- Render account (free tier available)
-- Code pushed to GitHub
-
-## Step 1 - Prepare MongoDB Atlas
+## 1. Prepare MongoDB Atlas
 
 1. Sign in to [MongoDB Atlas](https://cloud.mongodb.com)
-2. Create a database user (or reuse an existing one)
-3. **Network Access** → **Add IP Address** → allow `0.0.0.0/0` (Render's IPs are dynamic)
-4. **Database** → **Connect** → **Drivers** → copy the connection string, e.g.
-   `mongodb+srv://username:password@cluster.mongodb.net/`
+2. Create a database user (or reuse one)
+3. **Network Access** → **Add IP Address** → allow `0.0.0.0/0`
+4. **Database** → **Connect** → **Drivers** → copy the connection string
 
-## Step 2 - Deploy to Render
+Render's outbound IP addresses are dynamic, so the cluster has to accept connections from
+anywhere unless you pay for a static egress IP.
 
-### Option A - Render Dashboard (recommended)
+## 2. Deploy to Render
+
+### Option A - Dashboard
 
 1. **New +** → **Web Service**
 2. Connect the `expense-tracker-backend` repository
-3. Configure the service:
+3. Configure it:
 
     - **Name**: `expense-tracker-backend`
     - **Region**: closest to you
@@ -30,100 +30,65 @@ Deploy the ASP.NET Core 8 + MongoDB backend to [Render](https://render.com) usin
     - **Runtime**: `Docker`
     - **Instance Type**: `Free`
 
-4. **Advanced** → **Add Environment Variable**:
+4. Under **Environment**, add:
 
     ```
-    MONGODB_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/
+    MONGODB_CONNECTION_STRING=mongodb+srv://user:password@cluster.mongodb.net/
     FRONTEND_URL=https://your-frontend-url.vercel.app
-    ASPNETCORE_ENVIRONMENT=Production
     ```
 
 5. **Create Web Service**
 
-### Option B - Blueprint (`render.yaml`)
+Do not set `PORT` - Render injects it and the container listens on it.
 
-The repository ships a `render.yaml`:
+### Option B - Blueprint
 
-1. Update the `FRONTEND_URL` value in `render.yaml`
+The repository ships `render.yaml`:
+
+1. Change the `FRONTEND_URL` value in `render.yaml`
 2. Push to GitHub
-3. In Render: **New +** → **Blueprint** → connect the repository
-4. Render reads `render.yaml` and creates the service automatically
+3. Render: **New +** → **Blueprint** → connect the repository
 
-## Step 3 - Verify the deployment
+Render reads the blueprint and creates the service.
+
+## 3. Verify
 
 Render gives you a URL such as `https://expense-tracker-backend.onrender.com`.
 
 ```bash
-# Get all expenses
 curl https://your-backend-url.onrender.com/expenses
 
-# Create an expense
 curl -X POST https://your-backend-url.onrender.com/expenses \
   -H "Content-Type: application/json" \
   -d '{"amount": 100, "category": "food", "note": "test"}'
 ```
 
-## Step 4 - Connect the frontend
+## 4. Connect the frontend
 
-1. Set the frontend's `VITE_API_URL` to this Render URL and redeploy the frontend
-2. Set `FRONTEND_URL` **here** to the deployed frontend URL, then redeploy — this
-   is what allows the browser to call the API (CORS)
+1. Set the frontend's `VITE_API_URL` to the Render URL and redeploy the frontend
+2. Set `FRONTEND_URL` here to the frontend origin and redeploy the API
 
-## Environment Variables
+Step 2 is what allows the browser to call the API. Without it the request fails CORS, and
+`FRONTEND_URL` must match the origin exactly - scheme included, no trailing slash.
 
-| Variable                    | Description                              | Example                                        |
-| --------------------------- | ---------------------------------------- | ---------------------------------------------- |
-| `MONGODB_CONNECTION_STRING` | MongoDB Atlas connection string          | `mongodb+srv://user:pass@cluster.mongodb.net/` |
-| `FRONTEND_URL`              | Frontend origin allowed by CORS          | `https://myapp.vercel.app`                     |
-| `ASPNETCORE_ENVIRONMENT`    | ASP.NET Core environment                 | `Production`                                   |
-| `PORT`                      | Port Kestrel listens on (Render sets it) | `8080`                                         |
+## Environment variables
 
-Locally, the values can live in a `.env` file (see `.env.example`). In production
-they must be set as real environment variables — never committed.
+| Variable                    | Description                                        |
+| --------------------------- | -------------------------------------------------- |
+| `MONGODB_CONNECTION_STRING` | MongoDB Atlas connection string (required)         |
+| `FRONTEND_URL`              | Frontend origin allowed by CORS                    |
+| `CORS_ORIGINS`              | Comma-separated origins; overrides `FRONTEND_URL`  |
+| `ASPNETCORE_ENVIRONMENT`    | Optional. The container defaults to `Production`.  |
+| `PORT`                      | Set by Render. Do not define it yourself.          |
 
-## Local Docker check
-
-Test the production image before deploying. See `DOCKER_SETUP.md` for details.
-
-```bash
-docker build -t expense-tracker-backend .
-
-docker run -p 8080:8080 \
-  -e MONGODB_CONNECTION_STRING="your-connection-string" \
-  -e FRONTEND_URL="http://localhost:5173" \
-  expense-tracker-backend
-
-curl http://localhost:8080/expenses
-```
+Never commit a real connection string. Locally these values can live in `.env`; on Render
+they must be set as environment variables in the dashboard or in `render.yaml`.
 
 ## Troubleshooting
 
-### Container fails to start
-
-- Check the Render logs for the specific error message
-- Verify the MongoDB connection string is correct
-- Confirm Atlas network access allows connections from `0.0.0.0/0`
-
-### CORS errors
-
-- Add the exact frontend origin to `FRONTEND_URL`
-- The origin includes the scheme and must not have a trailing slash
-- Redeploy the backend after changing environment variables
-
-### MongoDB authentication errors
-
-- Verify the username and password
-- URL-encode special characters in the password
-- Confirm the database user has read/write permissions
-
-## Important Notes
-
-- **Free tier limitations**: Render's free instance spins down after ~15 minutes of inactivity
-- **Cold starts**: the first request after spin-down can take 30-60 seconds
-- **MongoDB**: keep the connection string secure, never commit it to GitHub
-- **HTTPS**: Render provides TLS for your service automatically
-
-## Monitoring
-
-Open the service in the Render Dashboard and use the **Logs** tab to watch
-real-time application output.
+| Symptom                                  | Cause                                                        |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| Deploy fails, logs show a connection error | `MONGODB_CONNECTION_STRING` is missing, wrong, or Atlas is blocking Render's IPs |
+| Browser reports a CORS error             | `FRONTEND_URL` doesn't match the frontend origin exactly      |
+| First request after a while is slow      | Free instances sleep when idle; the first request wakes them  |
+| `502` immediately after deploy           | The container crashed at startup - check the logs for the MongoDB error |
