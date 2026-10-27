@@ -4,8 +4,6 @@ using ExpenseTracker.Settings;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 
-// Load .env first: the host reads ASPNETCORE_ENVIRONMENT and other settings as soon as
-// it is created, so anything set after CreateBuilder would arrive too late.
 if (File.Exists(".env"))
 {
     DotNetEnv.Env.Load();
@@ -95,8 +93,7 @@ _ = app.Services.GetRequiredService<IOptions<MongoDbSettings>>().Value;
 
 // Global error handling.
 // Without this, an unhandled exception produces a bare 500 with no body and no CORS
-// headers, which the browser reports as a misleading "CORS policy" error. Returning a
-// JSON body keeps the real failure visible.
+// headers, which the browser reports as a misleading "CORS policy" error.
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>

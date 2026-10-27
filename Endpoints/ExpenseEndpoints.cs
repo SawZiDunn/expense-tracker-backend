@@ -4,10 +4,9 @@ using MongoDB.Bson;
 
 namespace ExpenseTracker.Endpoints;
 
-/// <summary>
 /// Route definitions for the expenses API. Kept out of Program.cs so the composition
 /// root stays about wiring, not about individual routes.
-/// </summary>
+
 public static class ExpenseEndpoints
 {
     public static IEndpointRouteBuilder MapExpenseEndpoints(this IEndpointRouteBuilder app)
@@ -93,8 +92,6 @@ public static class ExpenseEndpoints
         return app;
     }
 
-    // Mongo ids are ObjectIds. Without this check a malformed id reaches the driver, which
-    // throws while converting it, and the client sees a 500 instead of a 400.
     private static bool IsValidId(string id) => ObjectId.TryParse(id, out _);
 
     private static IResult InvalidId() =>

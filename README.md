@@ -36,7 +36,8 @@ MONGODB_CONNECTION_STRING=mongodb://localhost:27017
 FRONTEND_URL=http://localhost:5173
 EOF
 
-dotnet restore
+dotnet restore ExpenseTracker.csproj
+dotnet build ExpenseTracker.csproj
 dotnet run
 ```
 

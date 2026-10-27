@@ -33,8 +33,6 @@ public class ExpenseService
         expense.Id = id;
         var result = await _expensesCollection.ReplaceOneAsync(x => x.Id == id, expense);
 
-        // MatchedCount, not ModifiedCount: replacing a document with identical values
-        // leaves ModifiedCount at 0, which would report a valid update as a failure.
         return result.MatchedCount > 0;
     }
 
